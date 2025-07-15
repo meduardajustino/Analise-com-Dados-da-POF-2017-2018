@@ -14,7 +14,7 @@ library(modelsummary)
 df <- read_csv("M:/Maria Eduarda/Downloads/ipc_gastos pof 2017-2018 aula.csv")
 # Filtrar apenas o grupo "Habitação"
 df <- df %>%
-  filter(str_to_lower(grupo) == "alimentação")
+  filter(str_to_lower(grupo) == "habitacao")
 
 glimpse(df)
 
@@ -87,7 +87,9 @@ ggplot(tabela_icvr_nomeada, aes(x = reorder(estado, icvr), y = icvr)) +
 # salvar CSV final
 write_csv(tabela_icvr_nomeada, "icvr_habitacao_por_estado.csv")
 
-# Nova forma de visualização - mapa do Brasil
+
+#Nova forma de visualização - mapa do Brasil
+
 install.packages(c("geobr", "sf", "ggplot2", "dplyr", "readr"))  # caso não tenha
 library(geobr)
 library(sf)
@@ -95,18 +97,33 @@ library(ggplot2)
 library(dplyr)
 library(readr)
 
-# Obter mapa dos estados brasileiros
+# Extração dos coeficientes
+tabela_icvr <- tidy(modelo) %>%
+  filter(str_detect(term, "uf")) %>%
+  mutate(
+    uf = str_remove(term, "uf"),
+    uf = as.integer(uf),
+    coef = estimate,
+    ecoef = exp(coef)
+  ) %>%
+  mutate(
+    m_ecoef = mean(ecoef),
+    icvr = (ecoef / m_ecoef) - 1
+  ) %>%
+  select(uf, icvr) %>%
+  arrange(desc(icvr))
+
+# Obter mapa
 mapa_uf <- read_state(year = 2020)
 
-# Verifique as 12 UFs da sua base
-ufs_usadas <- tabela_icvr$uf
-
-# Filtrar o mapa apenas para essas UFs
-mapa_icvr <- mapa_uf %>%
-  filter(code_state %in% ufs_usadas)
-# Juntar com os dados de ICVR
-mapa_icvr_dados <- mapa_icvr %>%
+# Juntar mapa com dados
+mapa_icvr_dados <- mapa_uf %>%
   left_join(tabela_icvr, by = c("code_state" = "uf"))
+
+# Visualizar para checar
+summary(mapa_icvr_dados$icvr)  # Não deve ser tudo NA
+
+# Mapa
 ggplot(mapa_icvr_dados) +
   geom_sf(aes(fill = icvr), color = "white") +
   scale_fill_gradient2(
@@ -119,4 +136,3 @@ ggplot(mapa_icvr_dados) +
     caption = "Fonte: POF 2017-18, IBGE"
   ) +
   theme_minimal(base_size = 13)
-
