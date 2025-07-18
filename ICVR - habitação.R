@@ -67,7 +67,12 @@ ufs_nomes <- tibble(
 )
 
 # juntar com a tabela_icvr
-tabela_icvr_nomeada <- tabela_icvr %>%
+tabela_icvr_estados <- tabela_icvr %>%
+  left_join(ufs_nomes, by = "uf") %>%
+  arrange(desc(icvr))
+
+# tabela dos coefs com uf
+coefs_estados <- coefs %>%
   left_join(ufs_nomes, by = "uf") %>%
   arrange(desc(icvr))
 
